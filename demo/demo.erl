@@ -55,6 +55,10 @@ recv(Pid, Sid, Message, SessionState = #session_state{}) ->
     error_logger:info_msg("recv ~p ~p ~p~n", [Pid, Sid, Message]),
     {ok, SessionState}.
 
+handle_call({recv, Messages}, _Sid, State) ->
+    erlang:display(lists:flatten(io_lib:format("Message Received ~p", [Messages]))),
+    {ok, State}.
+
 handle_info(_Pid, _Sid, tick, SessionState = #session_state{}) ->
     error_logger:info_msg("Tick...", []),
     {ok, SessionState};
