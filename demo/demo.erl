@@ -21,6 +21,9 @@ start() ->
                                                                                                                    {session_timeout, 30000},
                                                                                                                    {callback, ?MODULE},
                                                                                                                    {protocol, socketio_data_protocol}])]},
+
+                                             {"/", cowboy_static, [{directory, <<"./priv">>}, {file, <<"index.html">>}, {mimetypes, [{<<".html">>, [<<"text/html">>]}]} ]},
+
                                              {"/[...]", cowboy_static, [
                                                                         {directory, <<"./priv">>},
                                                                         {mimetypes, [
