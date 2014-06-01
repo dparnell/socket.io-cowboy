@@ -145,7 +145,7 @@ terminate(_Reason, _Req, _HttpState = #http_state{heartbeat_tref = HeartbeatTRef
     end.
 
 text_headers(Req) ->
-    {Headers, Req2} = cowboy_req:headers(Req),
+    {Headers, _Req} = cowboy_req:headers(Req),
     Host = proplists:get_value(<<"origin">>, Headers),
     [{<<"content-Type">>, <<"text/plain; charset=utf-8">>},
      {<<"Cache-Control">>, <<"no-cache">>},

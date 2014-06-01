@@ -75,7 +75,7 @@ ack(Id, EndPoint, Msg) when is_integer(Id), is_list(Msg) ->
 ack(Id, EndPoint, Msg) when is_list(Id), is_list(Msg) ->
     IdBin = binary:list_to_bin(Id),
     ack(IdBin, EndPoint, Msg);
-ack(Id, EndPoint, Msg) when is_binary(Id), is_list(Msg) ->
+ack(Id, _EndPoint, Msg) when is_binary(Id), is_list(Msg) ->
     JsonBin = jsx:encode(Msg),
     <<"6:::", Id/binary, JsonBin/binary>>.
 

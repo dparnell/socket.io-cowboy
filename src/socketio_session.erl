@@ -19,7 +19,7 @@
 
 %% API
 -export([start_link/5, init/0, configure/1, create/5, find/1, pull/2, pull_no_wait/2, poll/1, send/2, recv/2,
-         send_message/2, send_obj/2, send_event/3, send_acj.4, refresh/1, disconnect/1, unsub_caller/2]).
+         send_message/2, send_obj/2, send_event/3, send_ack/4, refresh/1, disconnect/1, unsub_caller/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -248,14 +248,14 @@ process_messages([Message|Rest], State = #state{id = SessionId, callback = Callb
             {stop, normal, ok, State};
         heartbeat ->
             process_messages(Rest, State);
-        {message, Id, EndPoint, Obj} ->
+        {message, _Id, EndPoint, Obj} ->
             case Callback:recv(self(), SessionId, {message, EndPoint, Obj}, SessionState) of
                 {ok, NewSessionState} ->
                     process_messages(Rest, State#state{session_state = NewSessionState});
                 {disconnect, NewSessionState} ->
                     {stop, normal, ok, State#state{session_state = NewSessionState}}
             end;
-        {json, Id, EndPoint, Obj} ->
+        {json, _Id, EndPoint, Obj} ->
             case Callback:recv(self(), SessionId, {json, EndPoint, Obj}, SessionState) of
                 {ok, NewSessionState} ->
                     process_messages(Rest, State#state{session_state = NewSessionState});
