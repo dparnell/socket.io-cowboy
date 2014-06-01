@@ -73,8 +73,8 @@ handle(Req, HttpState = #http_state{action = create_session, config = #config{he
 
 
 
-    {ok, SessionQSName} = application:get_env(socketio, session_qs_name),
-    {ok, SessionCookieName} = application:get_env(socketio, session_cookie_name),
+    SessionQSName = application:get_env(socketio, session_qs_name, <<"session">>),
+    SessionCookieName = application:get_env(socketio, session_cookie_name, <<"session">>),
 
     {SessionIdQs, _} = cowboy_req:qs_val(SessionQSName, Req, nil),
 
