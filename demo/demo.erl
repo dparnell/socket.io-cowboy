@@ -1,12 +1,13 @@
 -module(demo).
 
--export([start/0, open/3, recv/4, handle_info/4, close/3]).
+-export([start/0, open/3, recv/4, handle_info/4, handle_call/3, close/3]).
 
 -record(session_state, {}).
 
 start() ->
     ok = application:start(sasl),
     ok = application:start(crypto),
+    ok = application:start(asn1),
     ok = application:start(public_key),
     ok = application:start(ssl),
     ok = application:start(ranch),
@@ -32,8 +33,7 @@ start() ->
 
     demo_mgr:start_link(),
 
-    cowboy:start_http(socketio_http_listener, 100, [{host, "127.0.0.1"},
-                                                    {port, 8080}], [{env, [{dispatch, Dispatch}]}]).
+    cowboy:start_http(socketio_http_listener, 100, [{port, 8080}], [{env, [{dispatch, Dispatch}]}]).
 
 %% ---- Handlers
 open(Pid, Sid, _Opts) ->
