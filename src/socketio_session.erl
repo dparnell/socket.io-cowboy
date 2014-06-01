@@ -1,4 +1,3 @@
-%% @author Kirill Trofimov <sinnus@gmail.com>
 %% @copyright 2012 Kirill Trofimov
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +19,7 @@
 
 %% API
 -export([start_link/5, init/0, configure/1, create/5, find/1, pull/2, pull_no_wait/2, poll/1, send/2, recv/2,
-         send_message/2, send_obj/2, refresh/1, disconnect/1, unsub_caller/2]).
+         send_message/2, send_obj/2, send_event/3, send_acj.4, refresh/1, disconnect/1, unsub_caller/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -84,6 +83,14 @@ send_message(Pid, Message) when is_binary(Message) ->
 
 send_obj(Pid, Obj) ->
     gen_server:cast(Pid, {send, {json, <<>>, <<>>, Obj}}).
+
+send_event(Pid, Name, Args) when is_list(Name) ->
+    send_event(Pid, list_to_binary(Name), Args);
+send_event(Pid, Name, Args) when is_binary(Name) ->
+    gen_server:cast(Pid, {send, {event, Name, Args}}).
+
+send_ack(Pid, Id, EndPoint, Obj) ->
+    gen_server:cast(Pid, {send, {ack, Id, EndPoint, Obj}}).
 
 recv(Pid, Messages) when is_list(Messages) ->
     gen_server:call(Pid, {recv, Messages}, infinity).
@@ -241,15 +248,23 @@ process_messages([Message|Rest], State = #state{id = SessionId, callback = Callb
             {stop, normal, ok, State};
         heartbeat ->
             process_messages(Rest, State);
-        {message, <<>>, EndPoint, Obj} ->
+        {message, Id, EndPoint, Obj} ->
             case Callback:recv(self(), SessionId, {message, EndPoint, Obj}, SessionState) of
                 {ok, NewSessionState} ->
                     process_messages(Rest, State#state{session_state = NewSessionState});
                 {disconnect, NewSessionState} ->
                     {stop, normal, ok, State#state{session_state = NewSessionState}}
             end;
-        {json, <<>>, EndPoint, Obj} ->
+        {json, Id, EndPoint, Obj} ->
             case Callback:recv(self(), SessionId, {json, EndPoint, Obj}, SessionState) of
+                {ok, NewSessionState} ->
+                    process_messages(Rest, State#state{session_state = NewSessionState});
+                {disconnect, NewSessionState} ->
+                    {stop, normal, ok, State#state{session_state = NewSessionState}}
+            end;
+        {event, Id, EndPoint, EventName, EventArgs} ->
+            Msg = {event, Id, EndPoint, EventName, EventArgs},
+            case Callback:recv(self(), SessionId, Msg, SessionState) of
                 {ok, NewSessionState} ->
                     process_messages(Rest, State#state{session_state = NewSessionState});
                 {disconnect, NewSessionState} ->

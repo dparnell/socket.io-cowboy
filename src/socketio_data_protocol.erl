@@ -1,5 +1,7 @@
 -module(socketio_data_protocol).
--compile([export_all, {no_auto_import, [error/2]}]).
+-export([encode/1,
+         decode/1]).
+-compile([{no_auto_import, [error/2]}]).
 -include_lib("eunit/include/eunit.hrl").
 
 %% The source code was taken and modified from https://github.com/yrashk/socket.io-erlang/blob/master/src/socketio_data_v1.erl
@@ -18,6 +20,10 @@ encode({message, Id, EndPoint, Message}) ->
     message(Id, EndPoint, Message);
 encode({json, Id, EndPoint, Message}) ->
     json(Id, EndPoint, Message);
+encode({event, EventName, EventArgs}) ->
+    event(<<>>, <<>>, EventName, EventArgs);
+encode({ack, Id, EndPoint, Message}) ->
+    ack(Id, EndPoint, Message);
 encode({connect, Endpoint}) ->
     connect(Endpoint);
 encode(heartbeat) ->
@@ -51,11 +57,27 @@ message(Id, EndPoint, Msg) when is_binary(Id) ->
 
 json(Id, EndPoint, Msg) when is_integer(Id) ->
     IdBin = binary:list_to_bin(integer_to_list(Id)),
-    JsonBin = jsx:term_to_json(Msg),
+    JsonBin = jsx:encode(Msg),
     <<"4:", IdBin/binary, ":", EndPoint/binary, ":", JsonBin/binary>>;
 json(Id, EndPoint, Msg) when is_binary(Id) ->
-    JsonBin = jsx:term_to_json(Msg),
+    JsonBin = jsx:encode(Msg),
     <<"4:", Id/binary, ":", EndPoint/binary, ":", JsonBin/binary>>.
+
+event(Id, EndPoint, EventName, EventArgs) when is_binary(Id), is_binary(EndPoint) ->
+    Msg = [{<<"name">>, EventName}, {<<"args">>, EventArgs}],
+    erlang:display(Msg),
+    JsonBin = jsx:encode(Msg),
+    <<"5:", Id/binary, ":", EndPoint/binary, ":", JsonBin/binary>>.
+
+ack(Id, EndPoint, Msg) when is_integer(Id), is_list(Msg) ->
+    IdBin = binary:list_to_bin(integer_to_list(Id)),
+    ack(IdBin, EndPoint, Msg);
+ack(Id, EndPoint, Msg) when is_list(Id), is_list(Msg) ->
+    IdBin = binary:list_to_bin(Id),
+    ack(IdBin, EndPoint, Msg);
+ack(Id, EndPoint, Msg) when is_binary(Id), is_list(Msg) ->
+    JsonBin = jsx:encode(Msg),
+    <<"6:::", Id/binary, JsonBin/binary>>.
 
 error(EndPoint, Reason) ->
     [<<"7::">>, EndPoint, $:, Reason].
@@ -114,7 +136,17 @@ decode_packet(<<"3:", Rest/binary>>) ->
 decode_packet(<<"4:", Rest/binary>>) ->
     {Id, R1} = id(Rest),
     {EndPoint, Data} = endpoint(R1),
-    {json, Id, EndPoint, jsx:json_to_term(Data)};
+    {json, Id, EndPoint, jsx:decode(Data)};
+decode_packet(<<"5:", Rest/binary>>) ->
+    {Id, R1} = id(Rest),
+    {EndPoint, Data} = endpoint(R1),
+    Json = jsx:decode(Data),
+    EventName = proplists:get_value(<<"name">>, Json),
+    EventArgs = case proplists:get_value(<<"args">>, Json) of
+                    [null] -> [];
+                    [Args] -> Args
+                end,
+    {event, Id, EndPoint, EventName, EventArgs};
 decode_packet(<<"7::", Rest/binary>>) ->
     {EndPoint, R1} = endpoint(Rest),
     case reason(R1) of
