@@ -11,6 +11,7 @@ start() ->
     ok = application:start(public_key),
     ok = application:start(ssl),
     ok = application:start(ranch),
+    ok = application:start(cowlib),
     ok = application:start(cowboy),
     ok = application:start(socketio),
 
@@ -22,15 +23,8 @@ start() ->
                                                                                                                    {callback, ?MODULE},
                                                                                                                    {protocol, socketio_data_protocol}])]},
 
-                                             {"/", cowboy_static, [{directory, <<"./priv">>}, {file, <<"index.html">>}, {mimetypes, [{<<".html">>, [<<"text/html">>]}]} ]},
-
-                                             {"/[...]", cowboy_static, [
-                                                                        {directory, <<"./priv">>},
-                                                                        {mimetypes, [
-                                                                                     {<<".html">>, [<<"text/html">>]},
-                                                                                     {<<".css">>, [<<"text/css">>]},
-                                                                                     {<<".js">>, [<<"application/javascript">>]}]}
-                                                                       ]}
+                                             {"/", cowboy_static, {file, "./priv/index.html"}},
+                                             {"/[...]", cowboy_static, {dir, "./priv"}}
                                             ]}
                                      ]),
 
